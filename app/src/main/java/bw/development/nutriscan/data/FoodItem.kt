@@ -14,6 +14,8 @@ data class FoodItem(
     val protein: Double?,
     val fat: Double?,
     val carbs: Double?,
-    val timestamp: Long
+    val timestamp: Long,
+
+    val imageUri: String? = null // Guardará la ruta a la imagen
 )
 

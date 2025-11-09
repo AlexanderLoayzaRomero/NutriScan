@@ -19,6 +19,7 @@ import kotlin.math.roundToInt
 data class AddFoodUiState(
     val editingItemId: Int? = null,
     val originalTimestamp: Long? = null,
+    val imageUri: String? = null,
 
     val foodName: String = "",
     val quantity: String = "100",
@@ -29,15 +30,13 @@ data class AddFoodUiState(
     val category: String = "Desayuno",
     val isLoading: Boolean = false,
 
-    // Campos base para auto-cálculo
     val baseCalories100g: Double? = null,
     val baseProtein100g: Double? = null,
     val baseFat100g: Double? = null,
-    val baseCarbs100g: Double? = null,
+    val baseCarbs100g: Double? = null, // <-- Este es el nombre correcto
 
-    // NUEVO: Lista para los resultados de búsqueda
     val searchResults: List<Product> = emptyList(),
-    val isSearching: Boolean = false, // Spinner de búsqueda
+    val isSearching: Boolean = false,
     val userMessage: String? = null
 )
 
@@ -45,112 +44,49 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
 
     private val apiService = RetrofitInstance.api
     private val decimalFormat = DecimalFormat("#.#")
-    private var searchJob: Job? = null // Job para el debouncing
+    private var searchJob: Job? = null
 
     private val _uiState = MutableStateFlow(AddFoodUiState())
     val uiState: StateFlow<AddFoodUiState> = _uiState.asStateFlow()
 
-    // --- Funciones para manejar eventos de la UI ---
-
-    // MODIFICADO: Ahora también dispara la búsqueda
+    // ... (onFoodNameChanged, onQuantityChanged, etc. HASTA onSearchResultSelected) ...
     fun onFoodNameChanged(name: String) {
         _uiState.update { it.copy(foodName = name) }
-
-        // Lógica de Debouncing
-        searchJob?.cancel() // Cancela la búsqueda anterior
-
-        // No buscar si el texto es muy corto
+        searchJob?.cancel()
         if (name.length < 3) {
             _uiState.update { it.copy(searchResults = emptyList()) }
             return
         }
-
-        // Inicia un nuevo job de búsqueda con retraso
         searchJob = viewModelScope.launch {
-            delay(350L) // Espera 350ms después de la última pulsación
+            delay(350L)
             searchFoodByNameInternal(name)
         }
     }
-
     fun onQuantityChanged(newQtyStr: String) {
         val currentState = _uiState.value
         val newQtyDouble = newQtyStr.toDoubleOrNull()
-
         if (newQtyDouble == null || newQtyDouble <= 0) {
             _uiState.update {
-                it.copy(
-                    quantity = newQtyStr,
-                    calories = "",
-                    protein = "",
-                    fat = "",
-                    carbs = ""
-                )
+                it.copy(quantity = newQtyStr, calories = "", protein = "", fat = "", carbs = "")
             }
         } else {
             val factor = newQtyDouble / 100.0
             _uiState.update {
                 it.copy(
                     quantity = newQtyStr,
-                    calories = currentState.baseCalories100g?.let { base ->
-                        (base * factor).roundToInt().toString()
-                    } ?: it.calories,
-                    protein = currentState.baseProtein100g?.let { base ->
-                        decimalFormat.format(base * factor)
-                    } ?: it.protein,
-                    fat = currentState.baseFat100g?.let { base ->
-                        decimalFormat.format(base * factor)
-                    } ?: it.fat,
-                    carbs = currentState.baseCarbs100g?.let { base ->
-                        decimalFormat.format(base * factor)
-                    } ?: it.carbs
+                    calories = currentState.baseCalories100g?.let { base -> (base * factor).roundToInt().toString() } ?: it.calories,
+                    protein = currentState.baseProtein100g?.let { base -> decimalFormat.format(base * factor) } ?: it.protein,
+                    fat = currentState.baseFat100g?.let { base -> decimalFormat.format(base * factor) } ?: it.fat,
+                    carbs = currentState.baseCarbs100g?.let { base -> decimalFormat.format(base * factor) } ?: it.carbs
                 )
             }
         }
     }
-
-    fun onCaloriesChanged(cal: String) {
-        _uiState.update {
-            it.copy(
-                calories = cal,
-                baseCalories100g = null // Rompe el enlace
-            )
-        }
-    }
-
-    fun onProteinChanged(p: String) {
-        _uiState.update {
-            it.copy(
-                protein = p,
-                baseProtein100g = null // Rompe el enlace
-            )
-        }
-    }
-
-    fun onFatChanged(f: String) {
-        _uiState.update {
-            it.copy(
-                fat = f,
-                baseFat100g = null // Rompe el enlace
-            )
-        }
-    }
-
-    fun onCarbsChanged(c: String) {
-        _uiState.update {
-            it.copy(
-                carbs = c,
-                baseCarbs100g = null // Rompe el enlace
-            )
-        }
-    }
-
-    fun onCategoryChanged(cat: String) {
-        _uiState.update { it.copy(category = cat) }
-    }
-
-    // --- Lógica de API ---
-
-    // Función interna para la búsqueda (llamada por el debouncer)
+    fun onCaloriesChanged(cal: String) { _uiState.update { it.copy(calories = cal, baseCalories100g = null) } }
+    fun onProteinChanged(p: String) { _uiState.update { it.copy(protein = p, baseProtein100g = null) } }
+    fun onFatChanged(f: String) { _uiState.update { it.copy(fat = f, baseFat100g = null) } }
+    fun onCarbsChanged(c: String) { _uiState.update { it.copy(carbs = c, baseCarbs100g = null) } }
+    fun onCategoryChanged(cat: String) { _uiState.update { it.copy(category = cat) } }
     private fun searchFoodByNameInternal(query: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSearching = true) }
@@ -158,76 +94,52 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
                 val response = apiService.searchFoodByName(query)
                 _uiState.update {
                     it.copy(
-                        // Filtramos para mostrar solo productos con datos nutricionales
-                        searchResults = response.products.filter { product ->
-                            product.productName != null && product.nutriments != null
-                        },
+                        searchResults = response.products.filter { product -> product.productName != null && product.nutriments != null },
                         isSearching = false
                     )
                 }
             } catch (e: Exception) {
-                // Manejar error de red
-                _uiState.update {
-                    it.copy(
-                        isSearching = false,
-                        searchResults = emptyList(),
-                        // --- AÑADIR ESTA LÍNEA ---
-                        userMessage = "Error de red: ${e.message}"
-                    )
-                }
+                _uiState.update { it.copy(isSearching = false, searchResults = emptyList(), userMessage = "Error de red: ${e.message}") }
             }
         }
     }
 
-    // NUEVO: Llamado cuando el usuario selecciona un item de la lista
+    // --- FUNCIÓN onSearchResultSelected (CORREGIDA) ---
     fun onSearchResultSelected(product: Product) {
-        searchJob?.cancel() // Detener cualquier búsqueda pendiente
-
+        searchJob?.cancel()
         val nutriments = product.nutriments
         val calories100g = nutriments?.energyKcal100g
         val protein100g = nutriments?.proteins100g
         val fat100g = nutriments?.fat100g
         val carbs100g = nutriments?.carbohydrates100g
-
         _uiState.update {
             it.copy(
                 foodName = product.productName ?: "",
-                quantity = "100", // Resetea a 100g
-
-                // Rellena los valores mostrados
+                quantity = "100",
                 calories = calories100g?.roundToInt()?.toString() ?: "",
                 protein = protein100g?.let { p -> decimalFormat.format(p) } ?: "",
                 fat = fat100g?.let { f -> decimalFormat.format(f) } ?: "",
                 carbs = carbs100g?.let { c -> decimalFormat.format(c) } ?: "",
-
-                // Guarda los valores base para el auto-cálculo
                 baseCalories100g = calories100g,
                 baseProtein100g = protein100g,
                 baseFat100g = fat100g,
-                baseCarbs100g = carbs100g,
-
-                searchResults = emptyList(), // Cierra/oculta la lista de resultados
-                isSearching = false
+                baseCarbs100g = carbs100g, // <-- ¡AQUÍ ESTÁ LA CORRECCIÓN!
+                searchResults = emptyList(),
+                isSearching = false,
+                imageUri = null
             )
         }
     }
-
-    // NUEVO: Para cerrar el menú desplegable si el usuario pincha fuera
-    fun clearSearchResults() {
-        _uiState.update { it.copy(searchResults = emptyList()) }
-    }
-
-    // Función de escáner de código de barras
+    fun clearSearchResults() { _uiState.update { it.copy(searchResults = emptyList()) } }
     fun fetchFoodDetails(barcode: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) } // Spinner grande
+            _uiState.update { it.copy(isLoading = true) }
             try {
                 val response = apiService.getProductByBarcode(barcode)
                 if (response.status == 1 && response.product != null) {
-                    // Reutilizamos la lógica de selección de producto
                     onSearchResultSelected(response.product)
                 } else {
-                    // TODO: Manejar "producto no encontrado" (ej. con un Toast)
+                    _uiState.update { it.copy(userMessage = "Producto no encontrado") }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(userMessage = "Error de red: ${e.message}") }
@@ -236,10 +148,10 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
             }
         }
     }
+    fun userMessageShown() { _uiState.update { it.copy(userMessage = null) } }
 
-    // Para limpiar el mensaje después de que se muestre
-    fun userMessageShown() {
-        _uiState.update { it.copy(userMessage = null) }
+    fun onImagePicked(uri: String?) {
+        _uiState.update { it.copy(imageUri = uri) }
     }
 
     fun loadFoodItem(id: Int) {
@@ -251,8 +163,8 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
                 _uiState.update {
                     it.copy(
                         editingItemId = foodItem.id,
-                        // --- GUARDAMOS EL TIMESTAMP ORIGINAL ---
                         originalTimestamp = foodItem.timestamp,
+                        imageUri = foodItem.imageUri,
                         foodName = foodItem.name,
                         quantity = decimalFormat.format(foodItem.quantity),
                         calories = foodItem.calories.toString(),
@@ -284,11 +196,8 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
                 protein = currentState.protein.replace(",", ".").toDoubleOrNull(),
                 fat = currentState.fat.replace(",", ".").toDoubleOrNull(),
                 carbs = currentState.carbs.replace(",", ".").toDoubleOrNull(),
-
-                // --- CAMBIO CLAVE: ---
-                // Si hay un 'originalTimestamp' (editando), úsalo.
-                // Si no (nuevo item), crea uno nuevo.
-                timestamp = currentState.originalTimestamp ?: System.currentTimeMillis()
+                timestamp = currentState.originalTimestamp ?: System.currentTimeMillis(),
+                imageUri = currentState.imageUri
             )
 
             viewModelScope.launch {

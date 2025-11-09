@@ -86,4 +86,6 @@ dependencies {
 
     // --- Barcode Scanner ---
     implementation(libs.mlkit.barcode.scanning)
+
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }

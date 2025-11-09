@@ -20,6 +20,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,6 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import bw.development.nutriscan.data.FoodItem
 import bw.development.nutriscan.ui.viewmodels.MealDetailViewModel
 import bw.development.nutriscan.ui.viewmodels.ViewModelFactory
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,25 +140,41 @@ fun MealDetailScreen(
 
 // ... (FoodListItem Composable sin cambios)
 @Composable
-fun FoodListItem(food: FoodItem, onItemClick: () -> Unit = {}) { // Añade onItemClick
+fun FoodListItem(food: FoodItem, onItemClick: () -> Unit = {}) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onItemClick), // Haz que la tarjeta sea clickable
+            .clickable(onClick = onItemClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(food.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("${food.quantity}g", style = MaterialTheme.typography.bodyMedium)
+        // El contenido ahora es una Columna, para poner la imagen arriba
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Mostrar la imagen SOLO si existe
+            if (food.imageUri != null) {
+                AsyncImage(
+                    model = food.imageUri,
+                    contentDescription = "Foto de ${food.name}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp), // Altura de la imagen en la lista
+                    contentScale = ContentScale.Crop
+                )
             }
-            Text("${food.calories} kcal", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+
+            // La fila con la info que ya teníamos
+            Row(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(food.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("${food.quantity}g", style = MaterialTheme.typography.bodyMedium)
+                }
+                Text("${food.calories} kcal", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            }
         }
     }
-  }
+}

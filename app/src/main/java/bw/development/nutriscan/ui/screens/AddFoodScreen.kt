@@ -1,5 +1,7 @@
 package bw.development.nutriscan.ui.screens
 
+import android.Manifest
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -7,6 +9,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -17,6 +20,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -24,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import bw.development.nutriscan.ui.viewmodels.AddFoodViewModel
 import bw.development.nutriscan.ui.viewmodels.ViewModelFactory
+import bw.development.nutriscan.util.CameraProvider
+import coil.compose.AsyncImage
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
@@ -70,7 +77,40 @@ fun AddFoodScreen(
                 Toast.makeText(context, "Error en escáner: ${e.message}", Toast.LENGTH_LONG).show()
             }
     }
-    // --- Fin Lógica del Escáner ---
+
+    var tempImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // 1. Lanzador para la CÁMARA
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            // Si la foto se tomó, guarda la URI en el ViewModel
+            viewModel.onImagePicked(tempImageUri?.toString())
+        }
+    }
+
+    // 2. Lanzador para el PERMISO de cámara
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Permiso concedido, crear URI y lanzar cámara
+            val uri = CameraProvider.getTmpFileUri(context)
+            tempImageUri = uri
+            cameraLauncher.launch(uri)
+        } else {
+            // Permiso denegado, mostrar mensaje
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Permiso de cámara necesario para esta función.")
+            }
+        }
+    }
+
+    // 3. Función del botón de cámara
+    val onTakePhotoClick = {
+        permissionLauncher.launch(Manifest.permission.CAMERA)
+    }
 
     // --- Lógica del Snackbar (sin cambios) ---
     LaunchedEffect(uiState.userMessage) {
@@ -124,7 +164,19 @@ fun AddFoodScreen(
                     .verticalScroll(rememberScrollState())
             ) {
 
-                // --- CAMBIO: Campo de nombre simplificado ---
+                AnimatedVisibility(visible = uiState.imageUri != null) {
+                    AsyncImage(
+                        model = uiState.imageUri,
+                        contentDescription = "Foto del alimento",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
                 // Ya no usamos ExposedDropdownMenuBox.
                 // Es un Column que contiene el TextField y la lista de resultados.
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -247,11 +299,14 @@ fun AddFoodScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                OutlinedButton(onClick = { /* TODO: Lógica para foto */ }, modifier = Modifier.fillMaxWidth()
+                OutlinedButton(
+                    onClick = { onTakePhotoClick() }, // <-- Llama a nuestra función
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.Camera, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
                     Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                    Text("Foto del alimento")
+                    // Cambia el texto si ya hay una foto
+                    Text(if (uiState.imageUri != null) "Volver a tomar foto" else "Foto del alimento")
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
