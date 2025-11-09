@@ -17,13 +17,15 @@ class ViewModelFactory(private val context: Context, private val mealType: Strin
                 requireNotNull(mealType) { "mealType must be provided for MealDetailViewModel" }
                 MealDetailViewModel(db.foodItemDao(), mealType) as T
             }
-
             modelClass.isAssignableFrom(FoodLogViewModel::class.java) -> {
                 FoodLogViewModel(db.foodItemDao()) as T
             }
-
+            // --- AÑADIR ESTE NUEVO BLOQUE ---
+            modelClass.isAssignableFrom(HomeViewModel::class.java) -> {
+                HomeViewModel(db.foodItemDao()) as T
+            }
+            // --- FIN DEL BLOQUE ---
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
-
 }

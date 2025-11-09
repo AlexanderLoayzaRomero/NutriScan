@@ -2,7 +2,6 @@
 package bw.development.nutriscan.data
 
 import androidx.room.Dao
-// AÑADIR ESTE IMPORT
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
@@ -13,7 +12,6 @@ interface FoodItemDao {
     @Insert
     suspend fun insertFoodItem(foodItem: FoodItem)
 
-    // --- AÑADIR ESTA NUEVA FUNCIÓN ---
     @Delete
     suspend fun deleteFoodItem(foodItem: FoodItem)
 
@@ -25,4 +23,8 @@ interface FoodItemDao {
 
     @Query("SELECT * FROM food_items WHERE category = :category AND timestamp >= :startOfDay AND timestamp <= :endOfDay ORDER BY timestamp DESC")
     fun getFoodItemsByCategoryForDay(category: String, startOfDay: Long, endOfDay: Long): Flow<List<FoodItem>>
+
+    // --- AÑADIR ESTA NUEVA FUNCIÓN ---
+    @Query("SELECT * FROM food_items WHERE timestamp >= :startOfDay AND timestamp <= :endOfDay")
+    fun getAllFoodItemsForDay(startOfDay: Long, endOfDay: Long): Flow<List<FoodItem>>
 }
