@@ -64,6 +64,7 @@ dependencies {
     // --- Room Database ---
     // 1. KTX (runtime y corrutinas)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.play.services.code.scanner)
     // 2. KSP (Kotlin Symbol Processing, reemplaza a KAPT)
     ksp(libs.androidx.room.compiler)
 
@@ -77,8 +78,9 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation("androidx.compose.material:material-icons-extended")
 
-    // --- Networking ---
+// --- Networking ---
     implementation(libs.retrofit.core)
+    implementation(libs.okhttp) // <-- AÑADIR ESTA LÍNEA
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.retrofit.kotlinx.serialization.converter)
 

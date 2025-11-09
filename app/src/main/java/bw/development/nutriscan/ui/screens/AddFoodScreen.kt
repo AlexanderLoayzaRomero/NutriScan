@@ -1,6 +1,8 @@
 package bw.development.nutriscan.ui.screens
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -19,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import bw.development.nutriscan.ui.viewmodels.AddFoodViewModel
 import bw.development.nutriscan.ui.viewmodels.ViewModelFactory
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,16 +33,49 @@ fun AddFoodScreen(
         factory = ViewModelFactory(context = LocalContext.current.applicationContext)
     )
 ) {
-    var foodName by remember { mutableStateOf("") }
-    var quantity by remember { mutableStateOf("100") }
-    var calories by remember { mutableStateOf("") }
-    var protein by remember { mutableStateOf("") }
-    var fat by remember { mutableStateOf("") }
-    var carbs by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Desayuno") }
+    // Recolectamos el estado desde el ViewModel
+    val uiState by viewModel.uiState.collectAsState()
+
     val categories = listOf("Desayuno", "Comida", "Cena", "Snack")
     var expanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    // --- Lógica del Escáner ---
+    val options = GmsBarcodeScannerOptions.Builder()
+        .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+        .build()
+    val scanner = GmsBarcodeScanning.getClient(context, options)
+
+    // Launcher para el escáner
+    val barcodeLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = { result ->
+            // Este callback se ha movido al onSuccessListener de startScan
+        }
+    )
+
+    // Función para iniciar el escaneo
+    val startScan = {
+        scanner.startScan()
+            .addOnSuccessListener { barcode ->
+                // Éxito: tenemos el código de barras
+                val rawValue = barcode.rawValue
+                if (rawValue != null) {
+                    // Llamamos al ViewModel con el código
+                    viewModel.fetchFoodDetails(rawValue)
+                } else {
+                    Toast.makeText(context, "No se pudo leer el código", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .addOnCanceledListener {
+                Toast.makeText(context, "Escaneo cancelado", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(context, "Error en escáner: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+    // --- Fin Lógica del Escáner ---
+
 
     Scaffold(
         topBar = {
@@ -64,8 +102,8 @@ fun AddFoodScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             OutlinedTextField(
-                value = foodName,
-                onValueChange = { foodName = it },
+                value = uiState.foodName,
+                onValueChange = { viewModel.onFoodNameChanged(it) }, // Conectado al VM
                 label = { Text("Nombre del alimento") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -73,8 +111,8 @@ fun AddFoodScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
-                    value = quantity,
-                    onValueChange = { quantity = it },
+                    value = uiState.quantity,
+                    onValueChange = { viewModel.onQuantityChanged(it) }, // Conectado al VM
                     label = { Text("Cantidad") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f),
@@ -88,7 +126,7 @@ fun AddFoodScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     OutlinedTextField(
-                        value = category,
+                        value = uiState.category,
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Categoría") },
@@ -100,7 +138,7 @@ fun AddFoodScreen(
                             DropdownMenuItem(
                                 text = { Text(selectionOption) },
                                 onClick = {
-                                    category = selectionOption
+                                    viewModel.onCategoryChanged(selectionOption) // Conectado al VM
                                     expanded = false
                                 }
                             )
@@ -111,8 +149,8 @@ fun AddFoodScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
-                value = calories,
-                onValueChange = { calories = it },
+                value = uiState.calories,
+                onValueChange = { viewModel.onCaloriesChanged(it) }, // Conectado al VM
                 label = { Text("Calorías (kcal)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
@@ -123,11 +161,11 @@ fun AddFoodScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = protein, onValueChange = { protein = it }, label = { Text("Proteínas (g)") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                OutlinedTextField(value = fat, onValueChange = { fat = it }, label = { Text("Grasas (g)") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                OutlinedTextField(value = uiState.protein, onValueChange = { viewModel.onProteinChanged(it) }, label = { Text("Proteínas (g)") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                OutlinedTextField(value = uiState.fat, onValueChange = { viewModel.onFatChanged(it) }, label = { Text("Grasas (g)") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
             }
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(value = carbs, onValueChange = { carbs = it }, label = { Text("Carbohidratos (g)") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+            OutlinedTextField(value = uiState.carbs, onValueChange = { viewModel.onCarbsChanged(it) }, label = { Text("Carbohidratos (g)") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -139,11 +177,19 @@ fun AddFoodScreen(
                 Text("Foto del alimento")
             }
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedButton(onClick = { /* TODO: Lógica para escaner */ }, modifier = Modifier.fillMaxWidth()
+
+            // Botón de escanear conectado
+            OutlinedButton(onClick = { startScan() }, modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
                 Spacer(Modifier.size(ButtonDefaults.IconSpacing))
                 Text("Escanear código de barras")
+            }
+
+            // Indicador de carga
+            if (uiState.isLoading) {
+                Spacer(modifier = Modifier.height(16.dp))
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -151,26 +197,17 @@ fun AddFoodScreen(
             // Botones de Guardar y Cancelar
             Button(
                 onClick = {
-                    val qty = quantity.toDoubleOrNull() ?: 0.0
-                    val cal = calories.toIntOrNull() ?: 0
-                    if (foodName.isNotBlank() && qty > 0 && cal > 0) {
-                        viewModel.saveFoodItem(
-                            name = foodName,
-                            quantity = qty,
-                            category = category,
-                            calories = cal,
-                            protein = protein.toDoubleOrNull(),
-                            fat = fat.toDoubleOrNull(),
-                            carbs = carbs.toDoubleOrNull()
-                        )
-                        Toast.makeText(context, "$foodName guardado!", Toast.LENGTH_SHORT).show()
-                        onNavigateBack()
-                    } else {
-                        Toast.makeText(context, "Por favor, completa los campos obligatorios.", Toast.LENGTH_LONG).show()
-                    }
+                    // La lógica de validación y guardado está ahora en el VM
+                    viewModel.saveFoodItem(
+                        onSaveSuccess = {
+                            Toast.makeText(context, "${uiState.foodName} guardado!", Toast.LENGTH_SHORT).show()
+                            onNavigateBack()
+                        }
+                    )
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = foodName.isNotBlank() && (quantity.toDoubleOrNull() ?: 0.0) > 0 && (calories.toIntOrNull() ?: 0) > 0
+                // La validación se basa en el estado del VM
+                enabled = uiState.foodName.isNotBlank() && (uiState.quantity.toDoubleOrNull() ?: 0.0) > 0 && (uiState.calories.toIntOrNull() ?: 0) > 0 && !uiState.isLoading
             ) {
                 Text("Guardar")
             }
