@@ -40,6 +40,9 @@ fun AddFoodScreen(
     val categories = listOf("Desayuno", "Comida", "Cena", "Snack")
     val context = LocalContext.current
 
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
     // --- Lógica del Escáner (sin cambios) ---
     val options = GmsBarcodeScannerOptions.Builder()
         .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
@@ -65,6 +68,17 @@ fun AddFoodScreen(
     }
     // --- Fin Lógica del Escáner ---
 
+    LaunchedEffect(uiState.userMessage) {
+        // Solución para el Smart Cast (Error 3)
+        val message = uiState.userMessage
+        if (message != null) {
+
+            // Solución para Error 1 y 2:
+            // Llama a la función suspendida directamente.
+            snackbarHostState.showSnackbar(message)
+            viewModel.userMessageShown()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -81,7 +95,8 @@ fun AddFoodScreen(
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         // CAMBIO: Usamos un Box para superponer el spinner de carga grande
         Box(modifier = Modifier.fillMaxSize()) {

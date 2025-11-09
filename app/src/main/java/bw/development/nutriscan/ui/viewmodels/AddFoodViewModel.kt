@@ -34,7 +34,8 @@ data class AddFoodUiState(
 
     // NUEVO: Lista para los resultados de búsqueda
     val searchResults: List<Product> = emptyList(),
-    val isSearching: Boolean = false // Spinner de búsqueda
+    val isSearching: Boolean = false, // Spinner de búsqueda
+    val userMessage: String? = null
 )
 
 class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
@@ -163,7 +164,14 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
                 }
             } catch (e: Exception) {
                 // Manejar error de red
-                _uiState.update { it.copy(isSearching = false, searchResults = emptyList()) }
+                _uiState.update {
+                    it.copy(
+                        isSearching = false,
+                        searchResults = emptyList(),
+                        // --- AÑADIR ESTA LÍNEA ---
+                        userMessage = "Error de red: ${e.message}"
+                    )
+                }
             }
         }
     }
@@ -219,7 +227,7 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
                     // TODO: Manejar "producto no encontrado" (ej. con un Toast)
                 }
             } catch (e: Exception) {
-                // TODO: Manejar error de red
+                _uiState.update { it.copy(userMessage = "Error de red: ${e.message}") }
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -241,14 +249,21 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
                 calories = cal,
                 protein = currentState.protein.replace(",", ".").toDoubleOrNull(),
                 fat = currentState.fat.replace(",", ".").toDoubleOrNull(),
-                carbs = currentState.carbs.replace(",", ".").toDoubleOrNull()
+                carbs = currentState.carbs.replace(",", ".").toDoubleOrNull(),
+                // --- AÑADIR ESTA LÍNEA ---
+                timestamp = System.currentTimeMillis()
             )
             viewModelScope.launch {
                 foodItemDao.insertFoodItem(newFoodItem)
                 onSaveSuccess()
             }
         } else {
-            // TODO: Mostrar error de validación
+            _uiState.update { it.copy(userMessage = "Por favor, rellene Nombre, Cantidad y Calorías.") }
         }
+    }
+
+    // Para limpiar el mensaje después de que se muestre
+    fun userMessageShown() {
+        _uiState.update { it.copy(userMessage = null) }
     }
 }

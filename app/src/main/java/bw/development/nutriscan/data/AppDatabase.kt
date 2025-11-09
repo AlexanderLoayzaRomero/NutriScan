@@ -1,3 +1,4 @@
+// en /app/src/main/java/bw/development/nutriscan/data/AppDatabase.kt
 package bw.development.nutriscan.data
 
 import android.content.Context
@@ -5,8 +6,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-// Asegúrate de que FoodItem::class está definido y es una @Entity
-@Database(entities = [FoodItem::class], version = 1, exportSchema = false)
+// --- CAMBIA version = 1 POR version = 2 ---
+@Database(entities = [FoodItem::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun foodItemDao(): FoodItemDao
 
@@ -16,12 +17,16 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                // ESTA ES LA SINTAXIS CORRECTA DE TRES ARGUMENTOS
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "nutriscan_database"
-                ).build()
+                )
+                    // --- AÑADIR ESTA LÍNEA ---
+                    // Esto borrará la base de datos y la creará de nuevo.
+                    // Es seguro en desarrollo, pero no en producción.
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

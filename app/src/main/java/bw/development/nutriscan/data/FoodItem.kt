@@ -13,6 +13,7 @@ data class FoodItem(
     val calories: Int,
     val protein: Double?,
     val fat: Double?,
-    val carbs: Double?
+    val carbs: Double?,
+    val timestamp: Long
 )
 

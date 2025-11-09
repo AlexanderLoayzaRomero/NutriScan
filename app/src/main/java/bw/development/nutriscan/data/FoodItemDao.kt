@@ -15,4 +15,5 @@ interface FoodItemDao {
 
     @Query("SELECT * FROM food_items ORDER BY id DESC")
     fun getAllFoodItems(): Flow<List<FoodItem>>
+
 }
