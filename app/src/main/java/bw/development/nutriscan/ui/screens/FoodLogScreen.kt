@@ -32,7 +32,11 @@ sealed interface LogItem {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FoodLogScreen(onNavigateBack: () -> Unit) {
+fun FoodLogScreen(
+    onNavigateBack: () -> Unit,
+    // --- AÑADIR ESTE PARÁMETRO ---
+    onNavigateToEditFood: (Int) -> Unit
+) {
 
     val viewModel: FoodLogViewModel = viewModel(
         factory = ViewModelFactory(context = LocalContext.current.applicationContext)
@@ -123,7 +127,10 @@ fun FoodLogScreen(onNavigateBack: () -> Unit) {
                                     }
                                 }
                             ) {
-                                FoodListItem(item.foodItem)
+                                FoodListItem(
+                                    food = item.foodItem,
+                                    onItemClick = { onNavigateToEditFood(item.foodItem.id) }
+                                )
                             }
                             // --- FIN DE LÓGICA CORREGIDA ---
                         }

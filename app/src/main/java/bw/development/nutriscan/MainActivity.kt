@@ -47,10 +47,8 @@ fun NutriScanApp() {
         // 1. Pantalla principal (Home)
         composable("home") {
             HomeScreen(
-                // CAMBIO: La lambda ahora pasa un booleano
                 onNavigateToAddFood = { shouldScan ->
-                    // Navega a la ruta con el argumento
-                    navController.navigate("addFood?startScan=$shouldScan")
+                    navController.navigate("addFood?startScan=$shouldScan&itemId=0")
                 },
                 onNavigateToMealDetail = { mealType ->
                     navController.navigate("mealDetail/$mealType")
@@ -59,40 +57,57 @@ fun NutriScanApp() {
             )
         }
 
-        // 2. Pantalla para añadir alimento (AHORA CON ARGUMENTO)
+        // 2. Pantalla para añadir alimento (RUTA MODIFICADA)
         composable(
-            // 1. Definir la ruta con el argumento opcional
-            route = "addFood?startScan={startScan}",
+            // CAMBIO: Añadido "&itemId={itemId}"
+            route = "addFood?startScan={startScan}&itemId={itemId}",
             arguments = listOf(
                 navArgument("startScan") {
                     type = NavType.BoolType
-                    defaultValue = false // Por defecto, no empezar escaneando
+                    defaultValue = false
+                },
+                // CAMBIO: Añadido navArgument para itemId
+                navArgument("itemId") {
+                    type = NavType.IntType
+                    defaultValue = 0 // 0 significa "item nuevo"
                 }
             )
         ) { backStackEntry ->
-            // 2. Extraer el argumento
             val startScan = backStackEntry.arguments?.getBoolean("startScan") ?: false
+            // CAMBIO: Extraer el itemId
+            val itemId = backStackEntry.arguments?.getInt("itemId") ?: 0
+
             AddFoodScreen(
                 onNavigateBack = { navController.popBackStack() },
-                // 3. Pasar el argumento a la pantalla
-                startScanNow = startScan
+                startScanNow = startScan,
+                // CAMBIO: Pasar el itemId a la pantalla
+                editingItemId = itemId
             )
         }
 
-        // 3. Pantalla de detalle de comida (sin cambios)
+        // 3. Pantalla de detalle de comida (MODIFICADA)
         composable("mealDetail/{mealType}") { backStackEntry ->
             val mealType = backStackEntry.arguments?.getString("mealType") ?: "Comida"
             MealDetailScreen(
                 mealType = mealType,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToAddFood = { navController.navigate("addFood?startScan=false") } // Aseguramos que no escanee
+                // CAMBIO: Aseguramos que itemId sea 0
+                onNavigateToAddFood = { navController.navigate("addFood?startScan=false&itemId=0") },
+                // CAMBIO: Añadida la navegación para editar
+                onNavigateToEditFood = { itemId ->
+                    navController.navigate("addFood?startScan=false&itemId=$itemId")
+                }
             )
         }
 
-        // 4. Pantalla de registro alimenticio (sin cambios)
+        // 4. Pantalla de registro alimenticio (MODIFICADA)
         composable("foodLog") {
             FoodLogScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                // CAMBIO: Añadida la navegación para editar
+                onNavigateToEditFood = { itemId ->
+                    navController.navigate("addFood?startScan=false&itemId=$itemId")
+                }
             )
         }
     }

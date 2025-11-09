@@ -1,6 +1,7 @@
 // en /app/src/main/java/bw/development/nutriscan/ui/screens/MealDetailScreen.kt
 package bw.development.nutriscan.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,7 +33,8 @@ import bw.development.nutriscan.ui.viewmodels.ViewModelFactory
 fun MealDetailScreen(
     mealType: String,
     onNavigateBack: () -> Unit,
-    onNavigateToAddFood: () -> Unit
+    onNavigateToAddFood: () -> Unit,
+    onNavigateToEditFood: (Int) -> Unit
 ) {
     val viewModel: MealDetailViewModel = viewModel(
         factory = ViewModelFactory(
@@ -122,7 +124,10 @@ fun MealDetailScreen(
                         }
                     ) {
                         // El contenido original (el item de la comida)
-                        FoodListItem(food)
+                        FoodListItem(
+                            food = food,
+                            onItemClick = { onNavigateToEditFood(food.id) }
+                        )
                     }
                     // --- FIN DE LÓGICA CORREGIDA ---
                 }
@@ -133,9 +138,11 @@ fun MealDetailScreen(
 
 // ... (FoodListItem Composable sin cambios)
 @Composable
-fun FoodListItem(food: FoodItem) {
+fun FoodListItem(food: FoodItem, onItemClick: () -> Unit = {}) { // Añade onItemClick
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onItemClick), // Haz que la tarjeta sea clickable
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -152,4 +159,4 @@ fun FoodListItem(food: FoodItem) {
             Text("${food.calories} kcal", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         }
     }
-}
+  }

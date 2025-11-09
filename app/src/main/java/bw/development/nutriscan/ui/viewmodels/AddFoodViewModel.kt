@@ -17,6 +17,8 @@ import java.text.DecimalFormat
 import kotlin.math.roundToInt
 
 data class AddFoodUiState(
+    val editingItemId: Int? = null,
+
     val foodName: String = "",
     val quantity: String = "100",
     val calories: String = "",
@@ -234,7 +236,36 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
         }
     }
 
-    // --- Lógica de Base de Datos ---
+    // Para limpiar el mensaje después de que se muestre
+    fun userMessageShown() {
+        _uiState.update { it.copy(userMessage = null) }
+    }
+
+    fun loadFoodItem(id: Int) {
+        if (id == 0) return // No es un ID válido, es un item nuevo
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val foodItem = foodItemDao.getFoodItemById(id)
+            if (foodItem != null) {
+                _uiState.update {
+                    it.copy(
+                        editingItemId = foodItem.id,
+                        foodName = foodItem.name,
+                        quantity = decimalFormat.format(foodItem.quantity),
+                        calories = foodItem.calories.toString(),
+                        protein = foodItem.protein?.let { p -> decimalFormat.format(p) } ?: "",
+                        fat = foodItem.fat?.let { f -> decimalFormat.format(f) } ?: "",
+                        carbs = foodItem.carbs?.let { c -> decimalFormat.format(c) } ?: "",
+                        category = foodItem.category,
+                        isLoading = false
+                    )
+                }
+            } else {
+                // Item no encontrado, volver al estado de "añadir nuevo"
+                _uiState.update { it.copy(isLoading = false, userMessage = "No se encontró el alimento") }
+            }
+        }
+    }
 
     fun saveFoodItem(onSaveSuccess: () -> Unit) {
         val currentState = _uiState.value
@@ -242,7 +273,9 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
         val cal = currentState.calories.toIntOrNull() ?: 0
 
         if (currentState.foodName.isNotBlank() && qty > 0 && cal > 0) {
-            val newFoodItem = FoodItem(
+            val foodItem = FoodItem(
+                // CAMBIO: Si estamos editando, usa el ID existente, si no, es 0 (autogenerado)
+                id = currentState.editingItemId ?: 0,
                 name = currentState.foodName,
                 quantity = qty,
                 category = currentState.category,
@@ -250,20 +283,21 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
                 protein = currentState.protein.replace(",", ".").toDoubleOrNull(),
                 fat = currentState.fat.replace(",", ".").toDoubleOrNull(),
                 carbs = currentState.carbs.replace(",", ".").toDoubleOrNull(),
-                // --- AÑADIR ESTA LÍNEA ---
-                timestamp = System.currentTimeMillis()
+                // CAMBIO: Mantenemos el timestamp original si estamos editando
+                timestamp = System.currentTimeMillis() // TODO: Mejorar esto
             )
+
             viewModelScope.launch {
-                foodItemDao.insertFoodItem(newFoodItem)
+                // CAMBIO: Decide si insertar o actualizar
+                if (currentState.editingItemId != null) {
+                    foodItemDao.updateFoodItem(foodItem)
+                } else {
+                    foodItemDao.insertFoodItem(foodItem)
+                }
                 onSaveSuccess()
             }
         } else {
             _uiState.update { it.copy(userMessage = "Por favor, rellene Nombre, Cantidad y Calorías.") }
         }
-    }
-
-    // Para limpiar el mensaje después de que se muestre
-    fun userMessageShown() {
-        _uiState.update { it.copy(userMessage = null) }
     }
 }

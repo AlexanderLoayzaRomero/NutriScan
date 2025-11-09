@@ -33,8 +33,9 @@ import kotlinx.coroutines.launch // <-- Asegúrate de tener este import
 @Composable
 fun AddFoodScreen(
     onNavigateBack: () -> Unit,
-    // --- AÑADIR ESTE PARÁMETRO ---
     startScanNow: Boolean,
+
+    editingItemId: Int,
     viewModel: AddFoodViewModel = viewModel(
         factory = ViewModelFactory(context = LocalContext.current.applicationContext)
     )
@@ -88,10 +89,17 @@ fun AddFoodScreen(
         }
     }
 
+    // Carga el item para editar, pero solo una vez
+    LaunchedEffect(key1 = editingItemId) {
+        if (editingItemId != 0) {
+            viewModel.loadFoodItem(editingItemId)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Añadir alimento") },
+                title = { Text(if (editingItemId != 0) "Editar alimento" else "Añadir alimento") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -260,7 +268,8 @@ fun AddFoodScreen(
                     onClick = {
                         viewModel.saveFoodItem(
                             onSaveSuccess = {
-                                Toast.makeText(context, "${uiState.foodName} guardado!", Toast.LENGTH_SHORT).show()
+                                val message = if (editingItemId != 0) "¡Guardado!" else "${uiState.foodName} guardado!"
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 onNavigateBack()
                             }
                         )
@@ -268,7 +277,7 @@ fun AddFoodScreen(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = uiState.foodName.isNotBlank() && (uiState.quantity.toDoubleOrNull() ?: 0.0) > 0 && (uiState.calories.toIntOrNull() ?: 0) > 0 && !uiState.isLoading && !uiState.isSearching
                 ) {
-                    Text("Guardar")
+                    Text(if (editingItemId != 0) "Guardar Cambios" else "Guardar")
                 }
                 TextButton(onClick = onNavigateBack, modifier = Modifier.fillMaxWidth()) {
                     Text("Cancelar")
