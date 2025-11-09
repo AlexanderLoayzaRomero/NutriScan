@@ -1,3 +1,4 @@
+// en /app/src/main/java/bw/development/nutriscan/data/FoodItemDao.kt
 package bw.development.nutriscan.data
 
 import androidx.room.Dao
@@ -13,7 +14,10 @@ interface FoodItemDao {
     @Query("SELECT * FROM food_items WHERE category = :category ORDER BY id DESC")
     fun getFoodItemsByCategory(category: String): Flow<List<FoodItem>>
 
-    @Query("SELECT * FROM food_items ORDER BY timestamp DESC") // Ordena por el timestamp
+    @Query("SELECT * FROM food_items ORDER BY timestamp DESC")
     fun getAllFoodItems(): Flow<List<FoodItem>>
 
+    // --- AÑADIR ESTA NUEVA FUNCIÓN ---
+    @Query("SELECT * FROM food_items WHERE category = :category AND timestamp >= :startOfDay AND timestamp <= :endOfDay ORDER BY timestamp DESC")
+    fun getFoodItemsByCategoryForDay(category: String, startOfDay: Long, endOfDay: Long): Flow<List<FoodItem>>
 }
