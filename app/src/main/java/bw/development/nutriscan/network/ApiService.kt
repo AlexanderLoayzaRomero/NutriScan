@@ -2,7 +2,7 @@ package bw.development.nutriscan.network
 
 import retrofit2.http.GET
 import retrofit2.http.Path
-import retrofit2.http.Query // <-- AÑADIR IMPORT
+import retrofit2.http.Query
 
 interface ApiService {
     // Llama a la API de OpenFoodFacts para un producto específico por código de barras
@@ -11,9 +11,9 @@ interface ApiService {
         @Path("barcode") barcode: String
     ): FoodApiResponse
 
-    // NUEVO: Endpoint para buscar productos por nombre
-    @GET("cgi/search.pl?json=1&search_simple=1&action=process&page_size=10&fields=product_name,nutriments")
+    // MODIFICADO: Añadimos el parámetro de ordenación
+    @GET("cgi/search.pl?json=1&search_simple=1&action=process&page_size=10&fields=product_name,nutriments&sort_by=nutriscore_score")
     suspend fun searchFoodByName(
         @Query("search_terms") query: String
-    ): SearchApiResponse // <-- Nueva clase de respuesta
+    ): SearchApiResponse
 }
