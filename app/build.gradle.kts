@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     // REEMPLAZADO: ksp es la opción moderna y más rápida para el Room Compiler
     id("com.google.devtools.ksp") // Se asume que este ID está definido en tu settings.gradle o build.gradle a nivel proyecto
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -75,4 +76,12 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation("androidx.compose.material:material-icons-extended")
+
+    // --- Networking ---
+    implementation(libs.retrofit.core)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.retrofit.kotlinx.serialization.converter)
+
+    // --- Barcode Scanner ---
+    implementation(libs.mlkit.barcode.scanning)
 }
