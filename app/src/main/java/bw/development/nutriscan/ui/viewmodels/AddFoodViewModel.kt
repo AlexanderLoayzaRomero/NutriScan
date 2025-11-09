@@ -18,6 +18,7 @@ import kotlin.math.roundToInt
 
 data class AddFoodUiState(
     val editingItemId: Int? = null,
+    val originalTimestamp: Long? = null,
 
     val foodName: String = "",
     val quantity: String = "100",
@@ -242,7 +243,7 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
     }
 
     fun loadFoodItem(id: Int) {
-        if (id == 0) return // No es un ID válido, es un item nuevo
+        if (id == 0) return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val foodItem = foodItemDao.getFoodItemById(id)
@@ -250,6 +251,8 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
                 _uiState.update {
                     it.copy(
                         editingItemId = foodItem.id,
+                        // --- GUARDAMOS EL TIMESTAMP ORIGINAL ---
+                        originalTimestamp = foodItem.timestamp,
                         foodName = foodItem.name,
                         quantity = decimalFormat.format(foodItem.quantity),
                         calories = foodItem.calories.toString(),
@@ -261,7 +264,6 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
                     )
                 }
             } else {
-                // Item no encontrado, volver al estado de "añadir nuevo"
                 _uiState.update { it.copy(isLoading = false, userMessage = "No se encontró el alimento") }
             }
         }
@@ -274,7 +276,6 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
 
         if (currentState.foodName.isNotBlank() && qty > 0 && cal > 0) {
             val foodItem = FoodItem(
-                // CAMBIO: Si estamos editando, usa el ID existente, si no, es 0 (autogenerado)
                 id = currentState.editingItemId ?: 0,
                 name = currentState.foodName,
                 quantity = qty,
@@ -283,12 +284,14 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
                 protein = currentState.protein.replace(",", ".").toDoubleOrNull(),
                 fat = currentState.fat.replace(",", ".").toDoubleOrNull(),
                 carbs = currentState.carbs.replace(",", ".").toDoubleOrNull(),
-                // CAMBIO: Mantenemos el timestamp original si estamos editando
-                timestamp = System.currentTimeMillis() // TODO: Mejorar esto
+
+                // --- CAMBIO CLAVE: ---
+                // Si hay un 'originalTimestamp' (editando), úsalo.
+                // Si no (nuevo item), crea uno nuevo.
+                timestamp = currentState.originalTimestamp ?: System.currentTimeMillis()
             )
 
             viewModelScope.launch {
-                // CAMBIO: Decide si insertar o actualizar
                 if (currentState.editingItemId != null) {
                     foodItemDao.updateFoodItem(foodItem)
                 } else {
