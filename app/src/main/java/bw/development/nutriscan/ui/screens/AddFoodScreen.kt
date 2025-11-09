@@ -27,11 +27,14 @@ import bw.development.nutriscan.ui.viewmodels.ViewModelFactory
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import kotlinx.coroutines.launch // <-- Asegúrate de tener este import
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddFoodScreen(
     onNavigateBack: () -> Unit,
+    // --- AÑADIR ESTE PARÁMETRO ---
+    startScanNow: Boolean,
     viewModel: AddFoodViewModel = viewModel(
         factory = ViewModelFactory(context = LocalContext.current.applicationContext)
     )
@@ -68,15 +71,20 @@ fun AddFoodScreen(
     }
     // --- Fin Lógica del Escáner ---
 
+    // --- Lógica del Snackbar (sin cambios) ---
     LaunchedEffect(uiState.userMessage) {
-        // Solución para el Smart Cast (Error 3)
         val message = uiState.userMessage
         if (message != null) {
-
-            // Solución para Error 1 y 2:
-            // Llama a la función suspendida directamente.
             snackbarHostState.showSnackbar(message)
             viewModel.userMessageShown()
+        }
+    }
+
+    // --- AÑADIR ESTE BLOQUE ---
+    // Lanza el escáner automáticamente si se lo pedimos
+    LaunchedEffect(key1 = startScanNow) {
+        if (startScanNow) {
+            startScan()
         }
     }
 

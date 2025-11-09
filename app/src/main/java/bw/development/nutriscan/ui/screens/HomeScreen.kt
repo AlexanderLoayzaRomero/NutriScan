@@ -17,7 +17,8 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToAddFood: () -> Unit,
+    // CAMBIO: La lambda ahora recibe un booleano
+    onNavigateToAddFood: (Boolean) -> Unit,
     onNavigateToMealDetail: (String) -> Unit,
     onNavigateToFoodLog: () -> Unit
 ) {
@@ -41,13 +42,15 @@ fun HomeScreen(
             ActionCard(
                 text = "AÑADIR ALIMENTO",
                 icon = Icons.Default.AddCircle,
-                onClick = onNavigateToAddFood
+                // CAMBIO: Navega sin escanear
+                onClick = { onNavigateToAddFood(false) }
             )
             Spacer(modifier = Modifier.height(16.dp))
             ActionCard(
                 text = "ESCANEAR",
                 icon = Icons.Default.QrCodeScanner,
-                onClick = { /* TODO: Implement scanner */ }
+                // CAMBIO: ¡Arreglado! Navega Y escanea
+                onClick = { onNavigateToAddFood(true) }
             )
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -70,6 +73,7 @@ fun HomeScreen(
     }
 }
 
+// ... (El resto del archivo: ActionCard, MealSection, etc. no cambian)
 @Composable
 fun ActionCard(text: String, icon: ImageVector, onClick: () -> Unit) {
     Card(
