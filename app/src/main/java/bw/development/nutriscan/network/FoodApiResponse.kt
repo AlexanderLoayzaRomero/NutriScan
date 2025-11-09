@@ -34,3 +34,9 @@ data class Nutriments(
     @SerialName("carbohydrates_100g")
     val carbohydrates100g: Double?
 )
+
+@Serializable
+data class SearchApiResponse(
+    @SerialName("products")
+    val products: List<Product>
+)
