@@ -15,20 +15,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+// AÑADIR ESTE IMPORT
+import bw.development.nutriscan.data.FoodItem
 import bw.development.nutriscan.ui.viewmodels.FoodLogViewModel
 import bw.development.nutriscan.ui.viewmodels.ViewModelFactory
+
+// --- AÑADIR ESTA INTERFAZ ---
+// Define los tipos de items en nuestra lista:
+// O es un Encabezado (Header) o es un Alimento (Food).
+sealed interface LogItem {
+    data class Header(val title: String) : LogItem
+    data class Food(val foodItem: FoodItem) : LogItem
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FoodLogScreen(onNavigateBack: () -> Unit) {
 
-    // 1. Inicializa el ViewModel
     val viewModel: FoodLogViewModel = viewModel(
         factory = ViewModelFactory(context = LocalContext.current.applicationContext)
     )
 
-    // 2. Observa el StateFlow
-    val foodItems by viewModel.allFoodItems.collectAsState()
+    // --- CAMBIO: Observamos la nueva lista agrupada ---
+    val logItems by viewModel.groupedFoodItems.collectAsState()
 
     Scaffold(
         topBar = {
@@ -47,30 +56,44 @@ fun FoodLogScreen(onNavigateBack: () -> Unit) {
             )
         }
     ) { paddingValues ->
-        // 3. Comprueba si la lista está vacía
-        if (foodItems.isEmpty()) {
+        if (logItems.isEmpty()) { // <-- Usa la nueva variable
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                // Mensaje si no hay historial
                 Text("Aún no tienes alimentos registrados.")
             }
         } else {
-            // 4. Muestra la lista
+            // --- CAMBIO: LazyColumn ahora maneja dos tipos de items ---
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
+                // Padding horizontal para toda la lista
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                // Espacio entre todos los items (headers y food)
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(foodItems) { food ->
-                    // 5. Reutilizamos el Composable de MealDetailScreen
-                    // (Es público, así que podemos importarlo)
-                    FoodListItem(food)
+                items(logItems) { item -> // <-- Itera sobre la lista sellada
+                    // Usamos 'when' para decidir qué Composable mostrar
+                    when (item) {
+                        is LogItem.Header -> {
+                            // Este es nuestro encabezado de fecha
+                            Text(
+                                text = item.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                // Damos un espacio extra arriba del encabezado
+                                modifier = Modifier.padding(top = 16.dp)
+                            )
+                        }
+                        is LogItem.Food -> {
+                            // Este es nuestro item de comida
+                            // ¡Reutilizamos el Composable que ya teníamos!
+                            FoodListItem(item.foodItem)
+                        }
+                    }
                 }
             }
         }
