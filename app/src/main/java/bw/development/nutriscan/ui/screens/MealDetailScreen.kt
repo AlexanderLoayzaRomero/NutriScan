@@ -1,3 +1,4 @@
+// en /app/src/main/java/bw/development/nutriscan/ui/screens/MealDetailScreen.kt
 package bw.development.nutriscan.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -6,12 +7,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+// IMPORTAR EL ESTADO CORRECTO
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+// IMPORTAR EL VALOR CORRECTO
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -74,14 +81,57 @@ fun MealDetailScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(foodItems) { food ->
-                    FoodListItem(food)
+                items(foodItems, key = { it.id }) { food ->
+
+                    // --- INICIO DE LA LÓGICA CORREGIDA ---
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        // Este lambda se llama ANTES de que el estado cambie.
+                        // Es el lugar perfecto para llamar al ViewModel.
+                        confirmValueChange = {
+                            if (it == SwipeToDismissBoxValue.EndToStart) {
+                                viewModel.onDeleteItem(food)
+                                true // Confirma el cambio (el item se "irá")
+                            } else {
+                                false // No confirma otros cambios (ej. deslizar a la derecha)
+                            }
+                        }
+                    )
+
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        // El fondo rojo solo se muestra cuando deslizamos al inicio (EndToStart)
+                        backgroundContent = {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = Color.Red)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Borrar",
+                                        tint = Color.White
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        // El contenido original (el item de la comida)
+                        FoodListItem(food)
+                    }
+                    // --- FIN DE LÓGICA CORREGIDA ---
                 }
             }
         }
     }
 }
 
+// ... (FoodListItem Composable sin cambios)
 @Composable
 fun FoodListItem(food: FoodItem) {
     Card(

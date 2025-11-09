@@ -12,12 +12,13 @@ import kotlinx.coroutines.flow.StateFlow
 // AÑADIR ESTE IMPORT
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 // AÑADIR ESTOS IMPORTS
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-class FoodLogViewModel(foodItemDao: FoodItemDao) : ViewModel() {
+class FoodLogViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
 
     // CAMBIO: Renombramos 'allFoodItems' a 'groupedFoodItems'
     // y cambiamos su tipo a List<LogItem>
@@ -29,6 +30,12 @@ class FoodLogViewModel(foodItemDao: FoodItemDao) : ViewModel() {
                 started = SharingStarted.WhileSubscribed(5000L),
                 initialValue = emptyList()
             )
+
+    fun onDeleteItem(foodItem: FoodItem) {
+        viewModelScope.launch {
+            foodItemDao.deleteFoodItem(foodItem)
+        }
+    }
 
     // --- NUEVA FUNCIÓN ---
     // Esta es la función principal que hace la agrupación
