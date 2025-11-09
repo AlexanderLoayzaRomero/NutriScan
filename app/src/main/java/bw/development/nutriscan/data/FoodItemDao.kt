@@ -13,7 +13,7 @@ interface FoodItemDao {
     @Query("SELECT * FROM food_items WHERE category = :category ORDER BY id DESC")
     fun getFoodItemsByCategory(category: String): Flow<List<FoodItem>>
 
-    @Query("SELECT * FROM food_items ORDER BY id DESC")
+    @Query("SELECT * FROM food_items ORDER BY timestamp DESC") // Ordena por el timestamp
     fun getAllFoodItems(): Flow<List<FoodItem>>
 
 }
