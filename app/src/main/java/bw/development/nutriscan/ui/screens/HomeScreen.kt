@@ -9,21 +9,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+// --- AÑADIR ESTE IMPORT ---
+import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-// --- NUEVOS IMPORTS ---
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
-// --- NUEVO IMPORT ---
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-// --- NUEVOS IMPORTS ---
 import androidx.lifecycle.viewmodel.compose.viewModel
 import bw.development.nutriscan.ui.viewmodels.HomeUiState
 import bw.development.nutriscan.ui.viewmodels.HomeViewModel
@@ -36,12 +35,9 @@ fun HomeScreen(
     onNavigateToMealDetail: (String) -> Unit,
     onNavigateToFoodLog: () -> Unit
 ) {
-    // 1. Inicializa el ViewModel
     val viewModel: HomeViewModel = viewModel(
         factory = ViewModelFactory(context = LocalContext.current.applicationContext)
     )
-
-    // 2. Observa el estado del UI
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
@@ -55,7 +51,6 @@ fun HomeScreen(
             )
         }
     ) { paddingValues ->
-        // 3. Añadimos un Scroll por si el contenido crece
         Column(
             modifier = Modifier
                 .padding(paddingValues)
@@ -64,11 +59,9 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState())
         ) {
 
-            // --- NUEVO COMPOSABLE: El Dashboard de Resumen ---
             TodaySummaryCard(uiState = uiState)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- Botones de Acción (sin cambios, solo se pasa el 'false') ---
             ActionCard(
                 text = "AÑADIR ALIMENTO",
                 icon = Icons.Default.AddCircle,
@@ -85,8 +78,7 @@ fun HomeScreen(
             Text("Mis Comidas", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 4. Pasamos el uiState a la sección de comidas
-            MealSection(onNavigateToMealDetail, uiState)
+            MealSection(onNavigateToMealDetail, uiState) // (Sin cambios aquí)
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -102,7 +94,7 @@ fun HomeScreen(
     }
 }
 
-// --- NUEVO COMPOSABLE COMPLETO ---
+// ... (TodaySummaryCard sin cambios) ...
 @Composable
 fun TodaySummaryCard(uiState: HomeUiState) {
     Card(
@@ -118,16 +110,12 @@ fun TodaySummaryCard(uiState: HomeUiState) {
         ) {
             Text("Resumen de Hoy", style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Calcula el progreso
             val progress = (uiState.totalCalories.toFloat() / uiState.calorieGoal.toFloat()).coerceIn(0f, 1f)
-            // Anima el progreso
             val animatedProgress by animateFloatAsState(
                 targetValue = progress,
                 animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec,
                 label = "CalorieProgress"
             )
-
             Box(contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(
                     progress = { animatedProgress },
@@ -152,7 +140,7 @@ fun TodaySummaryCard(uiState: HomeUiState) {
     }
 }
 
-// ... ActionCard (sin cambios) ...
+// ... (ActionCard sin cambios) ...
 @Composable
 fun ActionCard(text: String, icon: ImageVector, onClick: () -> Unit) {
     Card(
@@ -185,29 +173,38 @@ fun MealSection(onNavigate: (String) -> Unit, uiState: HomeUiState) {
             MealItem(
                 text = "Desayuno",
                 icon = Icons.Default.FreeBreakfast,
-                calories = uiState.breakfastCalories, // Pasa las calorías
+                calories = uiState.breakfastCalories,
                 onClick = { onNavigate("Desayuno") }
             )
             Divider(modifier = Modifier.padding(horizontal = 16.dp))
             MealItem(
                 text = "Comida",
                 icon = Icons.Default.Restaurant,
-                calories = uiState.lunchCalories, // Pasa las calorías
+                calories = uiState.lunchCalories,
                 onClick = { onNavigate("Comida") }
             )
             Divider(modifier = Modifier.padding(horizontal = 16.dp))
             MealItem(
                 text = "Cena",
                 icon = Icons.Default.DinnerDining,
-                calories = uiState.dinnerCalories, // Pasa las calorías
+                calories = uiState.dinnerCalories,
                 onClick = { onNavigate("Cena") }
             )
-            // Opcional: Añadir "Snacks" si quieres que aparezca aquí
+
+            // --- AÑADIR ESTE BLOQUE ---
+            Divider(modifier = Modifier.padding(horizontal = 16.dp))
+            MealItem(
+                text = "Snack",
+                icon = Icons.Default.Fastfood, // Icono para snacks
+                calories = uiState.snackCalories, // Usa las calorías de snack
+                onClick = { onNavigate("Snack") } // Navega a la categoría "Snack"
+            )
+            // --- FIN DEL BLOQUE ---
         }
     }
 }
 
-// --- COMPOSABLE MODIFICADO ---
+// ... (MealItem sin cambios) ...
 @Composable
 fun MealItem(text: String, icon: ImageVector, calories: Int, onClick: () -> Unit) {
     Row(
@@ -220,7 +217,6 @@ fun MealItem(text: String, icon: ImageVector, calories: Int, onClick: () -> Unit
         Icon(icon, contentDescription = text, modifier = Modifier.size(28.dp))
         Spacer(modifier = Modifier.width(16.dp))
         Text(text, fontSize = 18.sp, modifier = Modifier.weight(1f))
-        // Muestra las calorías
         if (calories > 0) {
             Text(
                 text = "$calories kcal",
@@ -231,7 +227,7 @@ fun MealItem(text: String, icon: ImageVector, calories: Int, onClick: () -> Unit
     }
 }
 
-// ... InfoCard (sin cambios) ...
+// ... (InfoCard sin cambios) ...
 @Composable
 fun InfoCard(text: String, icon: ImageVector, onClick: () -> Unit) {
     Card(
