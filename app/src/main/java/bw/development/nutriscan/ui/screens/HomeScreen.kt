@@ -9,8 +9,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-// --- AÑADIR ESTE IMPORT ---
 import androidx.compose.material.icons.filled.Fastfood
+// --- AÑADIR ESTE IMPORT ---
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -33,7 +34,9 @@ import bw.development.nutriscan.ui.viewmodels.ViewModelFactory
 fun HomeScreen(
     onNavigateToAddFood: (Boolean) -> Unit,
     onNavigateToMealDetail: (String) -> Unit,
-    onNavigateToFoodLog: () -> Unit
+    onNavigateToFoodLog: () -> Unit,
+    // --- AÑADIR ESTE PARÁMETRO ---
+    onNavigateToSettings: () -> Unit
 ) {
     val viewModel: HomeViewModel = viewModel(
         factory = ViewModelFactory(context = LocalContext.current.applicationContext)
@@ -46,8 +49,20 @@ fun HomeScreen(
                 title = { Text("NutriScan", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary // Color para el ícono
+                ),
+                // --- AÑADIR ESTE BLOQUE "actions" ---
+                actions = {
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Ajustes",
+                            tint = MaterialTheme.colorScheme.onPrimary // Asegura que sea blanco
+                        )
+                    }
+                }
+                // --- FIN DEL BLOQUE ---
             )
         }
     ) { paddingValues ->
@@ -59,9 +74,10 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState())
         ) {
 
-            TodaySummaryCard(uiState = uiState)
+            TodaySummaryCard(uiState = uiState) // (Sin cambios)
             Spacer(modifier = Modifier.height(16.dp))
 
+            // ... (ActionCards, Textos, MealSection, InfoCard... todo sin cambios) ...
             ActionCard(
                 text = "AÑADIR ALIMENTO",
                 icon = Icons.Default.AddCircle,
@@ -78,7 +94,7 @@ fun HomeScreen(
             Text("Mis Comidas", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(16.dp))
 
-            MealSection(onNavigateToMealDetail, uiState) // (Sin cambios aquí)
+            MealSection(onNavigateToMealDetail, uiState)
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -94,7 +110,7 @@ fun HomeScreen(
     }
 }
 
-// ... (TodaySummaryCard sin cambios) ...
+// ... (TodaySummaryCard sin cambios, excepto por el texto de la meta) ...
 @Composable
 fun TodaySummaryCard(uiState: HomeUiState) {
     Card(
@@ -110,7 +126,11 @@ fun TodaySummaryCard(uiState: HomeUiState) {
         ) {
             Text("Resumen de Hoy", style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(16.dp))
-            val progress = (uiState.totalCalories.toFloat() / uiState.calorieGoal.toFloat()).coerceIn(0f, 1f)
+
+            // CAMBIO: Asegurarnos de que goal no sea 0 para evitar división por cero
+            val safeGoal = if (uiState.calorieGoal > 0) uiState.calorieGoal.toFloat() else 1f
+            val progress = (uiState.totalCalories.toFloat() / safeGoal).coerceIn(0f, 1f)
+
             val animatedProgress by animateFloatAsState(
                 targetValue = progress,
                 animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec,
@@ -131,6 +151,7 @@ fun TodaySummaryCard(uiState: HomeUiState) {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
+                        // CAMBIO: Muestra la meta dinámica
                         text = "/ ${uiState.calorieGoal} kcal",
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -161,7 +182,7 @@ fun ActionCard(text: String, icon: ImageVector, onClick: () -> Unit) {
     }
 }
 
-// --- COMPOSABLE MODIFICADO ---
+// ... (MealSection sin cambios) ...
 @Composable
 fun MealSection(onNavigate: (String) -> Unit, uiState: HomeUiState) {
     Card(
@@ -190,16 +211,13 @@ fun MealSection(onNavigate: (String) -> Unit, uiState: HomeUiState) {
                 calories = uiState.dinnerCalories,
                 onClick = { onNavigate("Cena") }
             )
-
-            // --- AÑADIR ESTE BLOQUE ---
             Divider(modifier = Modifier.padding(horizontal = 16.dp))
             MealItem(
                 text = "Snack",
-                icon = Icons.Default.Fastfood, // Icono para snacks
-                calories = uiState.snackCalories, // Usa las calorías de snack
-                onClick = { onNavigate("Snack") } // Navega a la categoría "Snack"
+                icon = Icons.Default.Fastfood,
+                calories = uiState.snackCalories,
+                onClick = { onNavigate("Snack") }
             )
-            // --- FIN DEL BLOQUE ---
         }
     }
 }

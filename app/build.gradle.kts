@@ -88,4 +88,6 @@ dependencies {
     implementation(libs.mlkit.barcode.scanning)
 
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.0")
 }

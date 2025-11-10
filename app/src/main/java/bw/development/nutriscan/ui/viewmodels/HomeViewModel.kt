@@ -4,29 +4,36 @@ package bw.development.nutriscan.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import bw.development.nutriscan.data.FoodItemDao
+// --- AÑADIR IMPORT ---
+import bw.development.nutriscan.data.UserPreferencesRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+// --- AÑADIR IMPORT ---
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.util.Calendar
 
-// 1. Definimos el estado que la HomeScreen va a observar
 data class HomeUiState(
     val totalCalories: Int = 0,
     val breakfastCalories: Int = 0,
     val lunchCalories: Int = 0,
     val dinnerCalories: Int = 0,
     val snackCalories: Int = 0,
-    val calorieGoal: Int = 2000 // Objetivo de calorías (puedes cambiarlo)
+    // --- CAMBIO: La meta ahora viene del estado ---
+    val calorieGoal: Int = 0
 )
 
-class HomeViewModel(foodItemDao: FoodItemDao) : ViewModel() {
+// --- CAMBIO: El constructor ahora pide el UserPreferencesRepository ---
+class HomeViewModel(
+    foodItemDao: FoodItemDao,
+    userPreferencesRepository: UserPreferencesRepository
+) : ViewModel() {
 
     private val todayStart: Long
     private val todayEnd: Long
 
     init {
-        // Obtenemos los límites del día (igual que en MealDetailViewModel)
         val cal = Calendar.getInstance()
         cal.set(Calendar.HOUR_OF_DAY, 0)
         cal.set(Calendar.MINUTE, 0)
@@ -41,10 +48,15 @@ class HomeViewModel(foodItemDao: FoodItemDao) : ViewModel() {
         todayEnd = cal.timeInMillis
     }
 
-    // 2. Creamos el StateFlow
+    // --- CAMBIO: Combinamos dos Flows (comidas y meta) ---
     val uiState: StateFlow<HomeUiState> =
-        foodItemDao.getAllFoodItemsForDay(todayStart, todayEnd) // Usamos la nueva consulta
-            .map { items -> // 3. Transformamos la lista de comidas en el HomeUiState
+        // 1. Obtenemos el flow de la meta de calorías
+        userPreferencesRepository.calorieGoalFlow
+            .combine(
+                // 2. Obtenemos el flow de las comidas de hoy
+                foodItemDao.getAllFoodItemsForDay(todayStart, todayEnd)
+            ) { goal, items -> // 3. El bloque 'combine' se ejecuta cuando CUALQUIERA de los dos cambia
+
                 var total = 0
                 var breakfast = 0
                 var lunch = 0
@@ -66,12 +78,13 @@ class HomeViewModel(foodItemDao: FoodItemDao) : ViewModel() {
                     breakfastCalories = breakfast,
                     lunchCalories = lunch,
                     dinnerCalories = dinner,
-                    snackCalories = snack
+                    snackCalories = snack,
+                    calorieGoal = goal // 4. Usamos la meta de calorías leída del DataStore
                 )
             }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000L),
-                initialValue = HomeUiState() // Estado inicial (todo en 0)
+                initialValue = HomeUiState()
             )
 }

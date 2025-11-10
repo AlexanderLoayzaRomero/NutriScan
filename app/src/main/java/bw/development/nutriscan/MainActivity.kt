@@ -1,3 +1,4 @@
+// en /app/src/main/java/bw/development/nutriscan/MainActivity.kt
 package bw.development.nutriscan
 
 import android.os.Bundle
@@ -9,7 +10,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-// AÑADIR ESTOS IMPORTS
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -19,6 +19,8 @@ import bw.development.nutriscan.ui.screens.AddFoodScreen
 import bw.development.nutriscan.ui.screens.FoodLogScreen
 import bw.development.nutriscan.ui.screens.HomeScreen
 import bw.development.nutriscan.ui.screens.MealDetailScreen
+// --- AÑADIR ESTE IMPORT ---
+import bw.development.nutriscan.ui.screens.SettingsScreen
 import bw.development.nutriscan.ui.theme.NutriScanTheme
 
 class MainActivity : ComponentActivity() {
@@ -44,7 +46,7 @@ fun NutriScanApp() {
 
     NavHost(navController = navController, startDestination = "home") {
 
-        // 1. Pantalla principal (Home)
+        // 1. Pantalla principal (Home) - MODIFICADA
         composable("home") {
             HomeScreen(
                 onNavigateToAddFood = { shouldScan ->
@@ -53,61 +55,63 @@ fun NutriScanApp() {
                 onNavigateToMealDetail = { mealType ->
                     navController.navigate("mealDetail/$mealType")
                 },
-                onNavigateToFoodLog = { navController.navigate("foodLog") }
+                onNavigateToFoodLog = { navController.navigate("foodLog") },
+                // --- AÑADIR ESTA LÍNEA ---
+                onNavigateToSettings = { navController.navigate("settings") }
             )
         }
 
-        // 2. Pantalla para añadir alimento (RUTA MODIFICADA)
+        // 2. Pantalla para añadir alimento (sin cambios)
         composable(
-            // CAMBIO: Añadido "&itemId={itemId}"
             route = "addFood?startScan={startScan}&itemId={itemId}",
             arguments = listOf(
                 navArgument("startScan") {
                     type = NavType.BoolType
                     defaultValue = false
                 },
-                // CAMBIO: Añadido navArgument para itemId
                 navArgument("itemId") {
                     type = NavType.IntType
-                    defaultValue = 0 // 0 significa "item nuevo"
+                    defaultValue = 0
                 }
             )
         ) { backStackEntry ->
             val startScan = backStackEntry.arguments?.getBoolean("startScan") ?: false
-            // CAMBIO: Extraer el itemId
             val itemId = backStackEntry.arguments?.getInt("itemId") ?: 0
 
             AddFoodScreen(
                 onNavigateBack = { navController.popBackStack() },
                 startScanNow = startScan,
-                // CAMBIO: Pasar el itemId a la pantalla
                 editingItemId = itemId
             )
         }
 
-        // 3. Pantalla de detalle de comida (MODIFICADA)
+        // 3. Pantalla de detalle de comida (sin cambios)
         composable("mealDetail/{mealType}") { backStackEntry ->
             val mealType = backStackEntry.arguments?.getString("mealType") ?: "Comida"
             MealDetailScreen(
                 mealType = mealType,
                 onNavigateBack = { navController.popBackStack() },
-                // CAMBIO: Aseguramos que itemId sea 0
                 onNavigateToAddFood = { navController.navigate("addFood?startScan=false&itemId=0") },
-                // CAMBIO: Añadida la navegación para editar
                 onNavigateToEditFood = { itemId ->
                     navController.navigate("addFood?startScan=false&itemId=$itemId")
                 }
             )
         }
 
-        // 4. Pantalla de registro alimenticio (MODIFICADA)
+        // 4. Pantalla de registro alimenticio (sin cambios)
         composable("foodLog") {
             FoodLogScreen(
                 onNavigateBack = { navController.popBackStack() },
-                // CAMBIO: Añadida la navegación para editar
                 onNavigateToEditFood = { itemId ->
                     navController.navigate("addFood?startScan=false&itemId=$itemId")
                 }
+            )
+        }
+
+        // --- 5. AÑADIR NUEVA RUTA DE AJUSTES ---
+        composable("settings") {
+            SettingsScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }
