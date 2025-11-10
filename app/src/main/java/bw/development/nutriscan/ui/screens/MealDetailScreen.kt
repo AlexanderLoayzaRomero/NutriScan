@@ -1,4 +1,3 @@
-// en /app/src/main/java/bw/development/nutriscan/ui/screens/MealDetailScreen.kt
 package bw.development.nutriscan.ui.screens
 
 import androidx.compose.foundation.clickable
