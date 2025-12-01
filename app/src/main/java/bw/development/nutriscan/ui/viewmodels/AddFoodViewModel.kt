@@ -1,11 +1,21 @@
 package bw.development.nutriscan.ui.viewmodels
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import bw.development.nutriscan.data.FoodItem
 import bw.development.nutriscan.data.FoodItemDao
 import bw.development.nutriscan.network.Product
 import bw.development.nutriscan.network.RetrofitInstance
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.content
+import com.google.ai.client.generativeai.type.generationConfig
+import kotlinx.serialization.json.Json
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import java.text.DecimalFormat
 import kotlin.math.roundToInt
 
@@ -38,6 +49,15 @@ data class AddFoodUiState(
     val searchResults: List<Product> = emptyList(),
     val isSearching: Boolean = false,
     val userMessage: String? = null
+)
+
+@Serializable
+private data class AIAnalysisResponse(
+    val foodName: String,
+    val calories100g: Int,
+    val protein100g: Double,
+    val fat100g: Double,
+    val carbs100g: Double
 )
 
 class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
@@ -210,6 +230,85 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
             }
         } else {
             _uiState.update { it.copy(userMessage = "Por favor, rellene Nombre, Cantidad y Calorías.") }
+        }
+    }
+
+    // Configuración de Gemini (Modelo Flash para rapidez)
+    private val generativeModel = GenerativeModel(
+        modelName = "gemini-2.5-flash",
+        apiKey = "AIzaSyCjCvcNIZJsXH90QjDCTwuKNYQ20SmXVHk", // <--- ¡PEGALA AQUÍ!
+        generationConfig = generationConfig {
+            responseMimeType = "application/json" // Fuerza respuesta JSON
+        }
+    )
+
+    fun analyzeImage(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, userMessage = "Analizando alimentos con IA...") }
+
+            try {
+                // 1. Convertir URI a Bitmap
+                val bitmap = withContext(Dispatchers.IO) {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    BitmapFactory.decodeStream(inputStream)
+                }
+
+                if (bitmap != null) {
+                    // 2. Prompt para la IA
+                    val prompt = """
+                        Analiza esta imagen de comida. Identifica el alimento principal.
+                        Devuelve SOLAMENTE un objeto JSON con esta estructura exacta (sin md ni backticks):
+                        {
+                            "foodName": "Nombre del plato en español",
+                            "calories100g": valor entero aproximado de calorias por 100g,
+                            "protein100g": valor decimal de proteinas por 100g,
+                            "fat100g": valor decimal de grasas por 100g,
+                            "carbs100g": valor decimal de carbohidratos por 100g
+                        }
+                        Si no es comida, pon valores en 0 y nombre "Desconocido".
+                    """.trimIndent()
+
+                    // 3. Llamada a Gemini
+                    val response = withContext(Dispatchers.IO) {
+                        generativeModel.generateContent(
+                            content {
+                                image(bitmap)
+                                text(prompt)
+                            }
+                        )
+                    }
+
+                    // 4. Procesar respuesta
+                    response.text?.let { jsonString ->
+                        val cleanJson = jsonString.replace("```json", "").replace("```", "").trim()
+                        val result = Json { ignoreUnknownKeys = true }.decodeFromString<AIAnalysisResponse>(cleanJson)
+
+                        // 5. Actualizar la UI
+                        _uiState.update {
+                            it.copy(
+                                foodName = result.foodName,
+                                quantity = "100", // Asumimos 100g por defecto
+                                calories = result.calories100g.toString(),
+                                protein = decimalFormat.format(result.protein100g),
+                                fat = decimalFormat.format(result.fat100g),
+                                carbs = decimalFormat.format(result.carbs100g),
+                                // Guardamos los base para recalcular si cambian la cantidad
+                                baseCalories100g = result.calories100g.toDouble(),
+                                baseProtein100g = result.protein100g,
+                                baseFat100g = result.fat100g,
+                                baseCarbs100g = result.carbs100g,
+                                isLoading = false,
+                                userMessage = "¡Alimento identificado!"
+                            )
+                        }
+                    }
+                } else {
+                    _uiState.update { it.copy(isLoading = false, userMessage = "Error al cargar la imagen") }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.update { it.copy(isLoading = false, userMessage = "Error de IA: ${e.message}") }
+            }
         }
     }
 }

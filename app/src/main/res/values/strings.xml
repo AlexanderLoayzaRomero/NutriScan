@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">NutriScan</string>
+    <string name="default_web_client_id">736571681110-1ojnr5g045nqj9crffusrgc6tvmhtafd.apps.googleusercontent.com</string>
 </resources>

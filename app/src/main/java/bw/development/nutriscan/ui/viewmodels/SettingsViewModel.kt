@@ -68,4 +68,10 @@ class SettingsViewModel(
             _uiState.update { it.copy(isSaved = true) }
         }
     }
+
+    fun completeOnboarding() {
+        viewModelScope.launch {
+            userPreferencesRepository.completeOnboarding()
+        }
+    }
 }

@@ -1,6 +1,8 @@
-// en /app/src/main/java/bw/development/nutriscan/MainActivity.kt
 package bw.development.nutriscan
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,23 +11,72 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import bw.development.nutriscan.data.UserPreferencesRepository
 import bw.development.nutriscan.ui.screens.AddFoodScreen
 import bw.development.nutriscan.ui.screens.FoodLogScreen
 import bw.development.nutriscan.ui.screens.HomeScreen
 import bw.development.nutriscan.ui.screens.MealDetailScreen
-// --- AÑADIR ESTE IMPORT ---
+import bw.development.nutriscan.ui.screens.OnboardingScreen
 import bw.development.nutriscan.ui.screens.SettingsScreen
 import bw.development.nutriscan.ui.theme.NutriScanTheme
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import bw.development.nutriscan.ui.screens.LoginScreen
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ---------------------------------------------------------------------
+        // 1. PEDIR PERMISO DE NOTIFICACIONES (Obligatorio en Android 13+)
+        // ---------------------------------------------------------------------
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // 2. CÓDIGO DE PRUEBA (¡SOLO PARA HOY!)
+        // Esto dispara la notificación INMEDIATAMENTE al abrir la app
+        // ---------------------------------------------------------------------
+        val testRequest = OneTimeWorkRequestBuilder<ReminderWorker>().build()
+        WorkManager.getInstance(this).enqueue(testRequest)
+
+        /*
+        // ---------------------------------------------------------------------
+        // 3. CÓDIGO FINAL (DESCOMENTAR PARA LA VERSIÓN REAL)
+        // Esto programará la notificación para que salga cada 24 horas
+        // ---------------------------------------------------------------------
+        val dailyRequest = PeriodicWorkRequestBuilder<ReminderWorker>(24, TimeUnit.HOURS)
+            .setInitialDelay(5, TimeUnit.HOURS) // Espera un poco antes de la primera
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "DailyNutriReminder",
+            ExistingPeriodicWorkPolicy.KEEP, // Si ya existe, no lo duplica
+            dailyRequest
+        )
+        */
+
         enableEdgeToEdge()
         setContent {
             NutriScanTheme {
@@ -38,15 +89,41 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
 
 @Composable
 fun NutriScanApp() {
+    val context = LocalContext.current
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "home") {
+    val prefsRepo = remember { UserPreferencesRepository(context) }
+    val hasCompletedOnboarding by prefsRepo.hasCompletedOnboardingFlow.collectAsState(initial = null)
 
-        // 1. Pantalla principal (Home) - MODIFICADA
+    val currentUser = Firebase.auth.currentUser
+
+    if (hasCompletedOnboarding == null) {
+        return
+    }
+
+    val startRoute = when {
+        currentUser == null -> "login"
+        hasCompletedOnboarding == false -> "onboarding"
+        else -> "home"
+    }
+
+    NavHost(navController = navController, startDestination = startRoute) {
+
+        composable("login") {
+            LoginScreen(
+                onLoginSuccess = {
+                    // Al loguearse exitosamente, decidimos a dónde ir
+                    // Leemos de nuevo el onboarding para estar seguros o lo enviamos directo a onboarding
+                    navController.navigate("onboarding") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable("home") {
             HomeScreen(
                 onNavigateToAddFood = { shouldScan ->
@@ -108,11 +185,28 @@ fun NutriScanApp() {
             )
         }
 
-        // --- 5. AÑADIR NUEVA RUTA DE AJUSTES ---
         composable("settings") {
             SettingsScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                // AÑADE ESTO:
+                onLogout = {
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable("onboarding") {
+            OnboardingScreen(
+                onFinish = {
+                    navController.navigate("home") {
+                        popUpTo("onboarding") { inclusive = true }
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
             )
         }
     }
+}
 }

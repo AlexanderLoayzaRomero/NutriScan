@@ -4,6 +4,7 @@ package bw.development.nutriscan.data
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -58,6 +59,8 @@ class UserPreferencesRepository(context: Context) {
         val KEY_WEIGHT = doublePreferencesKey("weight")
         val KEY_ACTIVITY_LEVEL = stringPreferencesKey("activity_level")
         val KEY_GOAL = stringPreferencesKey("goal")
+
+        val KEY_HAS_ONBOARDING = booleanPreferencesKey("has_onboarding")
 
         private const val DEFAULT_GOAL = 2000 // Meta por defecto si no hay datos
     }
@@ -126,5 +129,16 @@ class UserPreferencesRepository(context: Context) {
         }
 
         return finalGoal.roundToInt()
+    }
+
+    val hasCompletedOnboardingFlow: Flow<Boolean> = dataStore.data
+        .map { preferences ->
+            preferences[KEY_HAS_ONBOARDING] ?: false
+        }
+
+    suspend fun completeOnboarding() {
+        dataStore.edit { preferences ->
+            preferences[KEY_HAS_ONBOARDING] = true
+        }
     }
 }

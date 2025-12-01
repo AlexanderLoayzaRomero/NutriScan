@@ -5,6 +5,7 @@ plugins {
     // REEMPLAZADO: ksp es la opción moderna y más rápida para el Room Compiler
     id("com.google.devtools.ksp") // Se asume que este ID está definido en tu settings.gradle o build.gradle a nivel proyecto
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.gms.google.services)
 }
 
 android {
@@ -65,6 +66,8 @@ dependencies {
     // 1. KTX (runtime y corrutinas)
     implementation(libs.androidx.room.ktx)
     implementation(libs.play.services.code.scanner)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.compose.foundation)
     // 2. KSP (Kotlin Symbol Processing, reemplaza a KAPT)
     ksp(libs.androidx.room.compiler)
 
@@ -90,4 +93,11 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.0")
+    implementation(libs.google.ai.client)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.play.services.auth)
+
+    implementation(libs.androidx.work.runtime.ktx)
 }

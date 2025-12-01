@@ -1,9 +1,11 @@
 package bw.development.nutriscan.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -86,23 +88,19 @@ fun MealDetailScreen(
             ) {
                 items(foodItems, key = { it.id }) { food ->
 
-                    // --- INICIO DE LA LÓGICA CORREGIDA ---
                     val dismissState = rememberSwipeToDismissBoxState(
-                        // Este lambda se llama ANTES de que el estado cambie.
-                        // Es el lugar perfecto para llamar al ViewModel.
                         confirmValueChange = {
                             if (it == SwipeToDismissBoxValue.EndToStart) {
                                 viewModel.onDeleteItem(food)
-                                true // Confirma el cambio (el item se "irá")
+                                true
                             } else {
-                                false // No confirma otros cambios (ej. deslizar a la derecha)
+                                false
                             }
                         }
                     )
 
                     SwipeToDismissBox(
                         state = dismissState,
-                        // El fondo rojo solo se muestra cuando deslizamos al inicio (EndToStart)
                         backgroundContent = {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -124,43 +122,41 @@ fun MealDetailScreen(
                             }
                         }
                     ) {
-                        // El contenido original (el item de la comida)
                         FoodListItem(
                             food = food,
                             onItemClick = { onNavigateToEditFood(food.id) }
                         )
                     }
-                    // --- FIN DE LÓGICA CORREGIDA ---
                 }
             }
         }
     }
 }
-
-// ... (FoodListItem Composable sin cambios)
 @Composable
 fun FoodListItem(food: FoodItem, onItemClick: () -> Unit = {}) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onItemClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        // El contenido ahora es una Columna, para poner la imagen arriba
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Mostrar la imagen SOLO si existe
             if (food.imageUri != null) {
                 AsyncImage(
                     model = food.imageUri,
                     contentDescription = "Foto de ${food.name}",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp), // Altura de la imagen en la lista
+                        .height(150.dp),
                     contentScale = ContentScale.Crop
                 )
             }
 
-            // La fila con la info que ya teníamos
             Row(
                 modifier = Modifier
                     .padding(16.dp)
@@ -169,10 +165,24 @@ fun FoodListItem(food: FoodItem, onItemClick: () -> Unit = {}) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(food.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("${food.quantity}g", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = food.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${food.quantity}g",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
                 }
-                Text("${food.calories} kcal", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = "${food.calories} kcal",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }

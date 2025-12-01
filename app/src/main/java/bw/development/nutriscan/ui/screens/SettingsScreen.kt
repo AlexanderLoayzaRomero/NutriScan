@@ -18,13 +18,17 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import bw.development.nutriscan.data.UserProfile
 import bw.development.nutriscan.ui.viewmodels.SettingsViewModel
 import bw.development.nutriscan.ui.viewmodels.ViewModelFactory
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onLogout: () -> Unit
 ) {
-    // Usamos un ViewModelFactory especial solo para este ViewModel
     val viewModel: SettingsViewModel = viewModel(
         factory = ViewModelFactory(context = LocalContext.current.applicationContext)
     )
@@ -136,6 +140,36 @@ fun SettingsScreen(
             ) {
                 Text("Guardar Perfil")
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Divider() // Una línea finita para separar
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Botón de Cerrar Sesión (Rojo)
+            Button(
+                onClick = {
+                    // 1. Cerrar en Firebase
+                    Firebase.auth.signOut()
+
+                    // 2. Cerrar en Google (Para que pida cuenta la próxima vez)
+                    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build()
+                    val googleSignInClient = GoogleSignIn.getClient(context, gso)
+
+                    googleSignInClient.signOut().addOnCompleteListener {
+                        // 3. Navegar fuera (al Login)
+                        onLogout()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error, // Rojo
+                    contentColor = MaterialTheme.colorScheme.onError  // Texto blanco/claro
+                )
+            ) {
+                Text("Cerrar Sesión")
+            }
+
+            Spacer(modifier = Modifier.height(32.dp)) // Espacio final para que se vea bien
         }
     }
 }

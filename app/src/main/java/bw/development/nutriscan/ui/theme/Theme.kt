@@ -9,43 +9,51 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = NutriPrimary,
+    secondary = NutriSecondary,
+    tertiary = NutriTertiary
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = NutriPrimary,
+    onPrimary = White,
+    secondary = NutriSecondary,
+    onSecondary = White,
+    tertiary = NutriTertiary,
 
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    // El fondo general de la pantalla
+    background = NutriBackground,
+    onBackground = Black,
+
+    // Superficies estándar
+    surface = NutriSurface,
+    onSurface = Black,
+
+    // --- AQUÍ ESTÁ EL TRUCO PARA QUITAR EL MORADO ---
+    // Esto cambia el color de fondo de las Cards (Tarjetas) por defecto
+    surfaceVariant = NutriSurfaceVariant, // Ahora será Blanco
+    onSurfaceVariant = NutriOnSurfaceVariant, // Texto verde oscuro
+
+    // Esto cambia el color de fondo de los círculos de progreso y chips
+    secondaryContainer = NutriSecondaryContainer,
+    onSecondaryContainer = NutriOnSecondaryContainer,
+
+    // Bordes
+    outline = NutriPrimary.copy(alpha = 0.5f)
 )
 
 @Composable
 fun NutriScanTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // IMPORTANTE: dynamicColor en FALSE para que no tome colores azules de tu Android
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }

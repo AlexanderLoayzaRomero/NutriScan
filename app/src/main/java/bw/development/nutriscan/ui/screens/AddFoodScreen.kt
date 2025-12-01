@@ -4,6 +4,7 @@ import android.Manifest
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
@@ -15,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -87,6 +89,21 @@ fun AddFoodScreen(
         if (success) {
             // Si la foto se tomó, guarda la URI en el ViewModel
             viewModel.onImagePicked(tempImageUri?.toString())
+
+            tempImageUri?.let { uri ->
+                viewModel.analyzeImage(context, uri)
+            }
+        }
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            // Guardamos la URI para mostrarla
+            viewModel.onImagePicked(uri.toString())
+            // ¡Y la enviamos directo a la IA!
+            viewModel.analyzeImage(context, uri)
         }
     }
 
@@ -308,6 +325,22 @@ fun AddFoodScreen(
                     // Cambia el texto si ya hay una foto
                     Text(if (uiState.imageUri != null) "Volver a tomar foto" else "Foto del alimento")
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        // Abre la galería solo para fotos
+                        galleryLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                    Text("Seleccionar de Galería")
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedButton(onClick = { startScan() }, modifier = Modifier.fillMaxWidth()

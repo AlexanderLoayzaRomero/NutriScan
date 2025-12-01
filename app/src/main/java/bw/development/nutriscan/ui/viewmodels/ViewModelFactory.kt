@@ -23,16 +23,15 @@ class ViewModelFactory(private val context: Context, private val mealType: Strin
             modelClass.isAssignableFrom(FoodLogViewModel::class.java) -> {
                 FoodLogViewModel(db.foodItemDao()) as T
             }
-            // --- AÑADIR ESTE NUEVO BLOQUE ---
+
             modelClass.isAssignableFrom(HomeViewModel::class.java) -> {
-                HomeViewModel(db.foodItemDao(), prefsRepository) as T
+                HomeViewModel(db.foodItemDao(), prefsRepository, context) as T
             }
 
-            // --- AÑADIR ESTE NUEVO BLOQUE ---
             modelClass.isAssignableFrom(SettingsViewModel::class.java) -> {
                 SettingsViewModel(prefsRepository) as T
             }
-            // --- FIN DEL BLOQUE ---
+
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
