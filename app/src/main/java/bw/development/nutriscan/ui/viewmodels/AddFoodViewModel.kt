@@ -236,7 +236,7 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
 
     // Configuración de Gemini (Modelo Flash para rapidez)
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-1.5-flash",
+        modelName = "gemini-2.5-flash",
         apiKey = BuildConfig.GEMINI_API_KEY,
         generationConfig = generationConfig {
             responseMimeType = "application/json"
