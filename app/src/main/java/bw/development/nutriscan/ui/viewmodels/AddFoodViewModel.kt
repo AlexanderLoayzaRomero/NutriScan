@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import java.text.DecimalFormat
 import kotlin.math.roundToInt
+import bw.development.nutriscan.BuildConfig
 
 data class AddFoodUiState(
     val editingItemId: Int? = null,
@@ -235,10 +236,10 @@ class AddFoodViewModel(private val foodItemDao: FoodItemDao) : ViewModel() {
 
     // Configuración de Gemini (Modelo Flash para rapidez)
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-2.5-flash",
-        apiKey = "AIzaSyCjCvcNIZJsXH90QjDCTwuKNYQ20SmXVHk", // <--- ¡PEGALA AQUÍ!
+        modelName = "gemini-1.5-flash",
+        apiKey = BuildConfig.GEMINI_API_KEY,
         generationConfig = generationConfig {
-            responseMimeType = "application/json" // Fuerza respuesta JSON
+            responseMimeType = "application/json"
         }
     )
 

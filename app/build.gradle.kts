@@ -1,12 +1,21 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    // REEMPLAZADO: ksp es la opción moderna y más rápida para el Room Compiler
-    id("com.google.devtools.ksp") // Se asume que este ID está definido en tu settings.gradle o build.gradle a nivel proyecto
+    id("com.google.devtools.ksp")
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.gms.google.services)
 }
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
+}
+val geminiApiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
 
 android {
     namespace = "bw.development.nutriscan"
@@ -22,6 +31,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
     buildTypes {
@@ -42,6 +52,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
